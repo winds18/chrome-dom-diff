@@ -1,0 +1,27 @@
+// ============================================
+// WASM 导出函数
+// ============================================
+
+/// WASM导出版本号
+#[no_mangle]
+pub unsafe extern "C" fn chrome_dom_diff_version() -> usize {
+    1
+}
+
+/// WASM导出：测试加法
+#[no_mangle]
+pub unsafe extern "C" fn test_add(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+/// WASM导出：获取内存安全承诺
+#[no_mangle]
+pub unsafe extern "C" fn get_memory_safety_promise() -> *const u8 {
+    MEMORY_SAFETY_PROMISE.as_ptr()
+}
+
+/// WASM导出：获取内存安全承诺长度
+#[no_mangle]
+pub unsafe extern "C" fn get_memory_safety_promise_len() -> usize {
+    MEMORY_SAFETY_PROMISE.len()
+}
