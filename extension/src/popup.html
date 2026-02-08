@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chrome DOM Diff</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 450px;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+    }
+
+    .container {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+
+    h1 {
+      font-size: 18px;
+      margin-bottom: 16px;
+      color: #667eea;
+      text-align: center;
+    }
+
+    .status {
+      padding: 12px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .status-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .label {
+      font-weight: 600;
+      color: #6b7280;
+    }
+
+    .value {
+      color: #1f2937;
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+      grid-column: span 2;
+    }
+
+    .xpath-section {
+      background: #f0f9ff;
+      border: 2px solid #0ea5e9;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .xpath-section h3 {
+      font-size: 14px;
+      color: #0369a1;
+      margin-bottom: 12px;
+    }
+
+    .xpath-input {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      margin-bottom: 8px;
+      box-sizing: border-box;
+    }
+
+    .xpath-input:focus {
+      outline: none;
+      border-color: #0ea5e9;
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+
+    .xpath-presets {
+      margin-bottom: 8px;
+    }
+
+    .xpath-preset {
+      display: block;
+      width: 100%;
+      padding: 8px 12px;
+      margin-bottom: 4px;
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .xpath-preset:hover {
+      background: #e0f2fe;
+      border-color: #0ea5e9;
+    }
+
+    .log {
+      background: #1f2937;
+      color: #10b981;
+      padding: 12px;
+      border-radius: 8px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 11px;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .log-entry {
+      margin-bottom: 4px;
+    }
+
+    .log-entry.error {
+      color: #ef4444;
+    }
+
+    .log-entry.success {
+      color: #10b981;
+    }
+
+    .log-entry.info {
+      color: #60a5fa;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #f3f4f6;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-left: 8px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 Chrome DOM Diff</h1>
+
+    <div class="status" id="status">
+      <div class="status-item">
+        <span class="label">状态:</span>
+        <span class="value" id="wasmStatus">初始化中...</span>
+      </div>
+      <div class="status-item">
+        <span class="label">节点数:</span>
+        <span class="value" id="nodeCount">0</span>
+      </div>
+      <div class="status-item">
+        <span class="label">内存:</span>
+        <span class="value" id="memoryUsage">-</span>
+      </div>
+    </div>
+
+    <!-- XPath查询区域 -->
+    <div class="xpath-section">
+      <h3>🎯 XPath查询</h3>
+
+      <div class="xpath-presets">
+        <button class="xpath-preset" data-xpath="//*[@id='productTitle']">📦 亚马逊产品标题</button>
+        <button class="xpath-preset" data-xpath="//*[@id='priceblock_ourprice']">💰 亚马逊价格</button>
+        <button class="xpath-preset" data-xpath="//h1[@id='title']">📝 通用标题(h1)</button>
+        <button class="xpath-preset" data-xpath="//*[@class='price']">🏷️ 通用价格</button>
+      </div>
+
+      <input type="text" class="xpath-input" id="xpathInput" placeholder="输入XPath，如: //*[@id='productTitle']">
+
+      <div class="button-group">
+        <button class="btn-primary" id="queryBtn">🔍 查询</button>
+        <button class="btn-secondary" id="clearBtn">🗑️ 清空</button>
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button class="btn-primary" id="captureBtn">📷 捕获DOM</button>
+      <button class="btn-secondary" id="prepareBtn">⏭️ 准备差分</button>
+      <button class="btn-success" id="diffBtn">🔍 计算差分</button>
+      <button class="btn-secondary" id="statsBtn">📊 统计</button>
+      <button class="btn-danger" id="resetBtn">🔄 重置</button>
+      <button class="btn-secondary" id="testBtn">⚡ 性能测试</button>
+    </div>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

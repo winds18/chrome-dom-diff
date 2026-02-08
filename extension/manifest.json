@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "Chrome DOM Diff Capture",
+  "version": "1.0.0",
+  "description": "高性能DOM差分捕获系统（WASM加速）",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "src/js/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "glue/js/wasm-init.js",
+        "glue/js/wasm-bridge.js",
+        "src/js/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "src/popup.html"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "glue/wasm/*.wasm",
+        "test.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}

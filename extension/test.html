@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>WASM签名测试</title>
+</head>
+<body>
+  <h1>WASM函数签名测试</h1>
+  <button onclick="runTests()">运行测试</button>
+  <pre id="output"></pre>
+  
+  <script>
+    // 需要加载WASM模块
+    async function runTests() {
+      var output = document.getElementById('output');
+      output.textContent = '正在测试...\n';
+      
+      try {
+        // 加载WASM
+        var wasmUrl = chrome.runtime.getURL('glue/wasm/chrome_dom_diff.wasm');
+        var response = await fetch(wasmUrl);
+        var wasmBuffer = await response.arrayBuffer();
+        
+        var wasmMemory = new WebAssembly.Memory({
+          initial: 256,
+          maximum: 2048
+        });
+        
+        var module = await WebAssembly.compile(wasmBuffer);
+        var wasmInstance = await WebAssembly.instantiate(module, {
+          env: {
+            memory: wasmMemory
+          }
+        });
+        
+        var wasm = wasmInstance.exports;
+        output.textContent += 'WASM加载成功！\n\n';
+        
+        // 列出所有导出函数
+        output.textContent += '=== 导出的函数 ===\n';
+        var functions = Object.keys(wasm).filter(function(name) {
+          return typeof wasm[name] === 'function';
+        });
+        
+        functions.forEach(function(name) {
+          output.textContent += name + ' (参数数量:' + wasm[name].length + ')\n';
+        });
+        
+        output.textContent += '\n=== 测试返回值类型 ===\n';
+        for (var i = 0; i < 3; i++) {
+          var treeId = wasm.dom_tree_create();
+          output.textContent += 'dom_tree_create() 返回: ' + treeId + ' (类型:' + typeof treeId + ')\n';
+        }
+        
+        output.textContent += '\n=== 测试参数类型 ===\n';
+        var testTree = wasm.dom_tree_create();
+        
+        // 测试1: BigInt参数
+        try {
+          var count1 = wasm.dom_tree_node_count(testTree);
+          output.textContent += 'dom_tree_node_count(BigInt) → 成功! 返回: ' + count1 + '\n';
+        } catch(e) {
+          output.textContent += 'dom_tree_node_count(BigInt) → 失败: ' + e.message + '\n';
+        }
+        
+        // 测试2: Number参数
+        try {
+          var count2 = wasm.dom_tree_node_count(Number(testTree));
+          output.textContent += 'dom_tree_node_count(Number) → 成功! 返回: ' + count2 + '\n';
+        } catch(e) {
+          output.textContent += 'dom_tree_node_count(Number) → 失败: ' + e.message + '\n';
+        }
+        
+        // 测试3: dom_tree_add_element参数
+        output.textContent += '\n=== 测试dom_tree_add_element ===\n';
+        
+        var testCases = [
+          { name: '全部BigInt', args: [testTree, BigInt(1), BigInt(0), BigInt(0)] },
+          { name: '全部Number', args: [Number(testTree), 1, 0, 0] },
+          { name: '第1个Number，其他BigInt', args: [Number(testTree), BigInt(1), BigInt(0), BigInt(0)] },
+          { name: '第1个BigInt，其他Number', args: [testTree, 1, 0, 0] }
+        ];
+        
+        for (var i = 0; i < testCases.length; i++) {
+          var tc = testCases[i];
+          try {
+            wasm.dom_tree_add_element.apply(null, tc.args);
+            output.textContent += tc.name + ' → 成功! ✅\n';
+          } catch(e) {
+            output.textContent += tc.name + ' → 失败: ' + e.message + '\n';
+          }
+        }
+        
+        output.textContent += '\n=== 测试完成 ===\n';
+        
+      } catch (error) {
+        output.textContent += '错误: ' + error.message + '\n' + error.stack;
+      }
+    }
+  </script>
+</body>
+</html>
