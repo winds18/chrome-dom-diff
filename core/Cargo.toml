@@ -1,0 +1,73 @@
+[package]
+name = "chrome-dom-diff"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+authors = ["老王 <memory-safety@genesis.local>"]
+description = "Chrome DOM Diff with guaranteed memory safety"
+license = "MIT"
+
+[dependencies]
+# Arena 分配器 - 零 unsafe，高性能
+bumpalo = "3.19"
+
+# 并发安全
+atomic = "0.6"
+
+# 序列化（可选）
+serde = { version = "1.0", features = ["derive"], optional = true }
+
+[dev-dependencies]
+# 基准测试
+criterion = "0.5"
+
+# 内存泄漏检测（需要 nightly）
+pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
+
+[features]
+default = []
+serde = ["dep:serde"]
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[profile.dev]
+opt-level = 0
+
+[profile.test]
+opt-level = 1
+
+[[bin]]
+name = "chrome-dom-diff"
+path = "src/main.rs"
+
+[[bench]]
+name = "arena"
+harness = false
+
+[[bench]]
+name = "pool"
+harness = false
+
+[[bench]]
+name = "diff_perf"
+harness = false
+
+[[bench]]
+name = "dom_capture"
+harness = false
+
+[[bench]]
+name = "memory_growth"
+harness = false
+
+[[bench]]
+name = "websocket_throughput"
+harness = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
